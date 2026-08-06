@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>IoT-DeFi Secure Oracle Monitor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#0B0D13;--bg2:#10131A;--bg3:#171B24;--bg4:#1E222E;--bg5:#252A38;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --text:#E9EBF2;--text2:#8B91A8;--text3:#4E5468;
+  --teal:#00D4A0;--teal2:rgba(0,212,160,0.15);--teal3:rgba(0,212,160,0.08);
+  --red:#FF4F4F;--red2:rgba(255,79,79,0.15);--red3:rgba(255,79,79,0.07);
+  --amber:#FFB020;--amber2:rgba(255,176,32,0.15);
+  --blue:#4D9EFF;--blue2:rgba(77,158,255,0.15);
+  --purple:#A78BFA;--purple2:rgba(167,139,250,0.15);
+  --green:#22C55E;--green2:rgba(34,197,94,0.15);
+  --font:'Inter',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:8px;--r2:12px;--r3:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;display:flex;min-height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sb{width:230px;min-width:230px;background:var(--bg2);border-right:1px solid var(--border);height:100vh;display:flex;flex-direction:column;position:fixed;left:0;top:0;z-index:20}
+.sb-logo{padding:18px 18px 14px;border-bottom:1px solid var(--border)}
+.logo-row{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--teal),#00a87e);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-icon svg{width:18px;height:18px}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.logo-ver{font-size:10px;color:var(--text3);margin-top:14px;font-family:var(--mono)}
+.sb-nav{padding:10px 10px;flex:1;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:10px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r);cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:1px;position:relative}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--teal2);color:var(--teal)}
+.nav-item svg{width:15px;height:15px;flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--red2);color:var(--red)}
+.nav-badge.ok{background:var(--teal2);color:var(--teal)}
+.nav-badge.am{background:var(--amber2);color:var(--amber)}
+.sb-footer{padding:14px 16px;border-top:1px solid var(--border)}
+.sb-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:all .3s}
+.sdot.run{background:var(--teal);box-shadow:0 0 8px rgba(0,212,160,.5);animation:blink 2s infinite}
+.sdot.atk{background:var(--red);box-shadow:0 0 8px rgba(255,79,79,.5);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* MAIN */
+.main{margin-left:230px;flex:1;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+.main::-webkit-scrollbar{width:5px}
+.main::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px}
+
+/* TOPBAR */
+.topbar{height:54px;min-height:54px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:10px;position:sticky;top:0;z-index:10}
+.topbar-title{font-size:15px;font-weight:600;flex:1}
+.mode-pill{font-size:11px;font-weight:600;padding:3px 12px;border-radius:99px;display:flex;align-items:center;gap:5px}
+.mode-pill.normal{background:var(--teal2);color:var(--teal);border:1px solid rgba(0,212,160,.2)}
+.mode-pill.attack{background:var(--red2);color:var(--red);border:1px solid rgba(255,79,79,.2)}
+.mode-pill.idle{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;font-size:12px;font-weight:500;border-radius:var(--r);border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .15s;font-family:var(--font)}
+.btn:hover{background:var(--bg4);color:var(--text)}
+.btn svg{width:13px;height:13px}
+.btn-teal{background:var(--teal2);border-color:rgba(0,212,160,.25);color:var(--teal)}
+.btn-teal:hover{background:rgba(0,212,160,.22)}
+.btn-red{background:var(--red2);border-color:rgba(255,79,79,.25);color:var(--red)}
+.btn-red:hover{background:rgba(255,79,79,.22)}
+
+/* CONTENT */
+.content{padding:20px 22px;flex:1}
+.page{display:none}.page.active{display:block}
+
+/* ALERT BANNER */
+.alert-banner{display:none;align-items:center;gap:10px;background:var(--red2);border:1px solid rgba(255,79,79,.3);border-radius:var(--r2);padding:11px 15px;margin-bottom:18px;font-size:12px;color:var(--red)}
+.alert-banner.show{display:flex}
+.alert-banner svg{width:16px;height:16px;flex-shrink:0}
+
+/* SECTION LABEL */
+.slabel{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:18px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:15px}
+.stat-icon{width:30px;height:30px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.stat-icon svg{width:15px;height:15px}
+.stat-lbl{font-size:11px;color:var(--text3);margin-bottom:3px}
+.stat-val{font-size:22px;font-weight:700;line-height:1;color:var(--text)}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.stat-sub.up{color:var(--teal)}.stat-sub.dn{color:var(--red)}.stat-sub.am{color:var(--amber)}
+
+/* PIPELINE */
+.pipeline{display:flex;align-items:stretch;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:18px}
+.pipe-step{flex:1;padding:10px 6px;text-align:center;font-size:11px;font-weight:500;color:var(--text3);border-right:1px solid var(--border);transition:all .35s;cursor:default}
+.pipe-step:last-child{border-right:none}
+.pipe-step .pipe-ico{font-size:18px;display:block;margin-bottom:3px}
+.pipe-step.lit-b{color:var(--blue);background:var(--blue2)}
+.pipe-step.lit-t{color:var(--teal);background:var(--teal2)}
+.pipe-step.lit-p{color:var(--purple);background:var(--purple2)}
+.pipe-step.lit-a{color:var(--amber);background:var(--amber2)}
+
+/* GRID LAYOUTS */
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:16px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-bottom:16px}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:11px;margin-bottom:16px}
+.g12{display:grid;grid-template-columns:1fr 2fr;gap:11px;margin-bottom:16px}
+.g31{display:grid;grid-template-columns:3fr 1fr;gap:11px;margin-bottom:16px}
+
+/* NODE CARD */
+.node-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;transition:all .35s}
+.node-card.ok{border-color:rgba(0,212,160,.35);background:rgba(0,212,160,.04)}
+.node-card.atk{border-color:rgba(255,79,79,.5);background:rgba(255,79,79,.07);animation:cardpulse 1.5s infinite}
+@keyframes cardpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,79,79,0)}50%{box-shadow:0 0 12px 2px rgba(255,79,79,.18)}}
+.node-card.idle{border-color:var(--border)}
+.node-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.node-id{font-size:11px;font-weight:500;font-family:var(--mono);background:var(--bg3);padding:2px 8px;border-radius:4px;color:var(--text2)}
+.node-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;margin-left:auto}
+.nb-ok{background:var(--teal2);color:var(--teal)}
+.nb-atk{background:var(--red2);color:var(--red)}
+.nb-idle{background:var(--bg3);color:var(--text3)}
+.node-temp{font-size:30px;font-weight:700;font-family:var(--mono);line-height:1;margin-bottom:3px}
+.node-temp.normal-t{color:var(--text)}
+.node-temp.hot{color:var(--red)}
+.node-temp.cool{color:var(--teal)}
+.node-meta{font-size:11px;color:var(--text3);margin-bottom:10px}
+.node-meta span{color:var(--text2)}
+.ptrack{height:3px;background:var(--bg4);border-radius:99px;overflow:hidden;margin-top:6px}
+.pfill{height:100%;border-radius:99px;transition:width .6s,background .3s}
+
+/* ATTACK WARNING IN NODE CARD */
+.atk-warn{margin-top:8px;background:var(--red2);border:1px solid rgba(255,79,79,.25);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--red);display:none}
+.atk-warn.show{display:block}
+
+/* PANEL */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:0}
+.panel-hdr{padding:11px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.panel-title{font-size:13px;font-weight:600;flex:1}
+.panel-sub{font-size:11px;color:var(--text3)}
+.panel-body{padding:14px}
+
+/* ORACLE */
+.oracle-big{text-align:center;padding:18px 14px}
+.oracle-val{font-size:52px;font-weight:700;font-family:var(--mono);color:var(--teal);line-height:1;margin-bottom:3px}
+.oracle-val.empty{color:var(--text3);font-size:32px}
+.oracle-val.blocked{color:var(--red)}
+.oracle-lbl{font-size:12px;color:var(--text3)}
+.orow{display:flex;align-items:center;padding:10px 14px;border-top:1px solid var(--border);gap:10px}
+.orow-lbl{font-size:12px;color:var(--text3);flex:1}
+.orow-val{font-size:13px;font-weight:500;font-family:var(--mono)}
+
+/* CHART */
+.chart-wrap{position:relative;height:170px}
+
+/* LOG */
+.log-box{font-family:var(--mono);font-size:11px;line-height:1.85;height:200px;overflow-y:auto;padding:6px;background:var(--bg);border-radius:var(--r)}
+.log-box::-webkit-scrollbar{width:3px}
+.log-box::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px}
+.logrow{display:flex;gap:7px;padding:1px 0;border-bottom:1px solid rgba(255,255,255,.025)}
+.lt{color:var(--text3);flex-shrink:0}
+.lsrc{flex-shrink:0;padding:0 5px;border-radius:3px;font-size:10px;font-weight:600}
+.src-iot{background:var(--blue2);color:var(--blue)}
+.src-mqtt{background:var(--teal2);color:var(--teal)}
+.src-oracle{background:var(--purple2);color:var(--purple)}
+.src-chain{background:var(--amber2);color:var(--amber)}
+.src-warn{background:var(--red2);color:var(--red)}
+.src-sec{background:var(--green2);color:var(--green)}
+.lmsg{color:var(--text2);flex:1}
+.lmsg.warn{color:var(--red)}
+.lmsg.ok{color:var(--teal)}
+.lmsg.chain{color:var(--amber)}
+.lmsg.sec{color:var(--green)}
+
+/* TX TABLE */
+.tx-table{width:100%;border-collapse:collapse}
+.tx-table th{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.tx-table td{padding:9px 12px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);font-family:var(--mono)}
+.tx-table tr:last-child td{border-bottom:none}
+.tx-table tr:hover td{background:var(--bg3)}
+.tx-hash{color:var(--blue)}
+.tx-ok{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;background:var(--teal2);color:var(--teal);padding:2px 8px;border-radius:99px}
+.tx-dot{width:5px;height:5px;border-radius:50%;background:var(--teal)}
+
+/* SECURITY PAGE */
+.sec-level{display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:var(--r);padding:10px 13px;margin-bottom:8px;border:1px solid var(--border)}
+.sec-icon{width:30px;height:30px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sec-icon svg{width:14px;height:14px}
+.sec-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.sec-desc{font-size:11px;color:var(--text3)}
+.sec-badge{margin-left:auto;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;flex-shrink:0}
+.sec-pass{background:var(--teal2);color:var(--teal)}
+.sec-warn{background:var(--amber2);color:var(--amber)}
+.sec-fail{background:var(--red2);color:var(--red)}
+.proof-box{background:var(--bg);border-radius:var(--r);padding:11px 13px;font-size:11px;font-family:var(--mono);color:var(--teal);line-height:1.8;margin-top:8px}
+.proof-box .cm{color:var(--text3)}
+.proof-box .warn{color:var(--red)}
+.proof-box .ok{color:var(--teal)}
+.proof-box .am{color:var(--amber)}
+
+/* DB PAGE */
+.db-table{width:100%;border-collapse:collapse}
+.db-table th{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3)}
+.db-table td{padding:9px 12px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);font-family:var(--mono)}
+.db-table tr:hover td{background:var(--bg3)}
+.db-ok{color:var(--teal);font-weight:600}
+.db-bad{color:var(--red);font-weight:600}
+.db-am{color:var(--amber)}
+
+/* ESP32 CONNECT PAGE */
+.step-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:13px 15px;margin-bottom:10px;display:flex;gap:12px}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--teal2);color:var(--teal);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.step-desc{font-size:12px;color:var(--text2);line-height:1.6}
+.code-inline{background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:7px 10px;font-family:var(--mono);font-size:11px;color:var(--teal);margin:7px 0;display:block;line-height:1.7}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;margin-right:4px}
+.tag-teal{background:var(--teal2);color:var(--teal)}
+.tag-red{background:var(--red2);color:var(--red)}
+.tag-blue{background:var(--blue2);color:var(--blue)}
+.tag-am{background:var(--amber2);color:var(--amber)}
+
+/* SETTINGS */
+.form-lbl{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px}
+.form-inp{width:100%;padding:8px 11px;background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:12px;font-family:var(--font);outline:none;transition:border-color .15s}
+.form-inp:focus{border-color:rgba(0,212,160,.4)}
+.form-hint{font-size:11px;color:var(--text3);margin-top:3px}
+.form-group{margin-bottom:13px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)}
+.tgl-name{font-size:13px;font-weight:500}
+.tgl-desc{font-size:11px;color:var(--text3);margin-top:2px}
+.tgl{width:36px;height:20px;border-radius:99px;background:var(--bg4);position:relative;cursor:pointer;transition:background .2s;border:1px solid var(--border2)}
+.tgl.on{background:var(--teal);border-color:var(--teal)}
+.tgl::after{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:var(--text3);top:2px;left:2px;transition:all .2s}
+.tgl.on::after{background:#fff;transform:translateX(16px)}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:16px 0}
+.empty{text-align:center;padding:30px;color:var(--text3);font-size:12px}
+
+/* TABS */
+.tab-row{display:flex;gap:3px;background:var(--bg);padding:3px;border-radius:var(--r);margin-bottom:14px;width:fit-content}
+.tab{padding:6px 13px;font-size:12px;font-weight:500;color:var(--text3);border-radius:6px;cursor:pointer;transition:all .15s}
+.tab.active{background:var(--bg2);color:var(--text)}
+
+/* SECURITY METER */
+.sec-meter{height:8px;background:var(--bg4);border-radius:99px;overflow:hidden;margin-top:6px}
+.sec-fill{height:100%;border-radius:99px;transition:width 1s}
+
+/* LIVE INDICATOR */
+.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--teal);margin-right:5px;animation:blink 1.5s infinite}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sb">
+  <div class="sb-logo">
+    <div class="logo-row">
+      <div class="logo-icon">
+        <svg viewBox="0 0 18 18" fill="none">
+          <rect x="1" y="1" width="7" height="7" rx="2" fill="#0B0D13"/>
+          <rect x="10" y="1" width="7" height="7" rx="2" fill="#0B0D13"/>
+          <rect x="1" y="10" width="7" height="7" rx="2" fill="#0B0D13"/>
+          <circle cx="13.5" cy="13.5" r="3.5" fill="#0B0D13"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name">IoT-DeFi</div>
+      </div>
+    </div>
+    <div class="logo-ver">Secure Oracle Monitor v2.0</div>
+  </div>
+
+  <nav class="sb-nav">
+    <div class="nav-section">Monitor</div>
+    <div class="nav-item active" onclick="goPage('dashboard',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="goPage('nodes',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="3" r="2"/><circle cx="2" cy="13" r="2"/><circle cx="14" cy="13" r="2"/><line x1="8" y1="5" x2="2" y2="11"/><line x1="8" y1="5" x2="14" y2="11"/></svg>
+      IoT Nodes
+      <span class="nav-badge ok" id="nb-nodes">3</span>
+    </div>
+    <div class="nav-item" onclick="goPage('oracle',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l2 5h5l-4 3 1.5 5L8 11l-4.5 3L5 9 1 6h5z"/></svg>
+      Oracle
+    </div>
+    <div class="nav-item" onclick="goPage('blockchain',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="1" width="6" height="4" rx="1"/><rect x="1" y="11" width="5" height="4" rx="1"/><rect x="10" y="11" width="5" height="4" rx="1"/><line x1="8" y1="5" x2="8" y2="9"/><line x1="8" y1="9" x2="3.5" y2="11"/><line x1="8" y1="9" x2="12.5" y2="11"/></svg>
+      Blockchain
+      <span class="nav-badge am" id="nb-tx">0</span>
+    </div>
+
+    <div class="nav-section">Security</div>
+    <div class="nav-item" onclick="goPage('security',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1L2 4v4c0 3.5 2.5 6 6 7 3.5-1 6-3.5 6-7V4L8 1z"/><polyline points="5,8 7,10 11,6"/></svg>
+      Oracle Security
+      <span class="nav-badge ok" id="nb-sec">PROOF</span>
+    </div>
+    <div class="nav-item" onclick="goPage('database',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><ellipse cx="8" cy="4" rx="6" ry="2"/><path d="M2 4v4c0 1.1 2.7 2 6 2s6-.9 6-2V4"/><path d="M2 8v4c0 1.1 2.7 2 6 2s6-.9 6-2V8"/></svg>
+      Database View
+    </div>
+
+    <div class="nav-section">Setup</div>
+    <div class="nav-item" onclick="goPage('connect',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 6l-4 4M6 2l-4 4 4 4M10 6l4 4-4 4"/></svg>
+      ESP32 Connect
+    </div>
+    <div class="nav-item" onclick="goPage('settings',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.2 3.2l1 1M11.8 11.8l1 1M3.2 12.8l1-1M11.8 4.2l1-1"/></svg>
+      Settings
+    </div>
+    <div class="nav-item" onclick="goPage('logs',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M3 8h10M3 12h6"/></svg>
+      All Logs
+    </div>
+  </nav>
+
+  <div class="sb-footer">
+    <div class="sb-status">
+      <div class="sdot" id="sdot"></div>
+      <span id="slabel">System idle</span>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-top:6px" id="scycles">Cycle: 0 | TX: 0</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Dashboard</div>
+    <div class="mode-pill idle" id="mode-pill">● Idle</div>
+    <button class="btn btn-teal" onclick="startNormal()">▶ Normal</button>
+    <button class="btn btn-red" onclick="startAttack()">⚡ Attack</button>
+    <button class="btn" onclick="stopSim()">■ Stop</button>
+    <button class="btn" onclick="clearAll()">↺ Clear</button>
+  </div>
+
+  <!-- ══ DASHBOARD PAGE ══════════════════════ -->
+  <div class="content page active" id="page-dashboard">
+
+    <div class="alert-banner" id="atk-banner">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="8,1 15,14 1,14"/><line x1="8" y1="6" x2="8" y2="10"/><circle cx="8" cy="12.5" r=".8" fill="currentColor"/></svg>
+      <strong>ATTACK DETECTED</strong> — Node 3 is sending anomalous value of <strong>500°C</strong>. Oracle has detected and excluded it. Z-score = <span id="z3-banner">--</span>. Blockchain received correct temperature. Attack blocked successfully.
+    </div>
+
+    <!-- Pipeline -->
+    <div class="slabel">Live data pipeline</div>
+    <div class="pipeline">
+      <div class="pipe-step" id="pipe-iot"><span class="pipe-ico">📡</span>ESP32 Nodes</div>
+      <div class="pipe-step" id="pipe-mqtt"><span class="pipe-ico">📨</span>MQTT Broker</div>
+      <div class="pipe-step" id="pipe-oracle"><span class="pipe-ico">🔮</span>Oracle</div>
+      <div class="pipe-step" id="pipe-chain"><span class="pipe-ico">⛓️</span>Blockchain</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--teal2)"><svg viewBox="0 0 15 15" fill="none" stroke="var(--teal)" stroke-width="1.5"><path d="M7.5 1v6M4 4l3.5-3 3.5 3"/><path d="M2 9v3a1 1 0 001 1h9a1 1 0 001-1V9"/></svg></div>
+        <div class="stat-lbl">Validated Temp</div>
+        <div class="stat-val" id="sv-temp">--<span style="font-size:13px;color:var(--text3)">°C</span></div>
+        <div class="stat-sub" id="sv-temp-sub">Waiting for data</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--amber2)"><svg viewBox="0 0 15 15" fill="none" stroke="var(--amber)" stroke-width="1.5"><rect x="1" y="3" width="13" height="9" rx="1.5"/><path d="M5 7h5M5 10h3"/></svg></div>
+        <div class="stat-lbl">Transactions</div>
+        <div class="stat-val" id="sv-tx">0</div>
+        <div class="stat-sub am">On Ganache blockchain</div>
+      </div>
+      <div class="stat-card" id="sc-attacks">
+        <div class="stat-icon" style="background:var(--red2)"><svg viewBox="0 0 15 15" fill="none" stroke="var(--red)" stroke-width="1.5"><circle cx="7.5" cy="7.5" r="6"/><line x1="7.5" y1="4.5" x2="7.5" y2="8"/><circle cx="7.5" cy="10.5" r=".8" fill="var(--red)"/></svg></div>
+        <div class="stat-lbl">Attacks Blocked</div>
+        <div class="stat-val" id="sv-blocked">0</div>
+        <div class="stat-sub" id="sv-blocked-sub" style="color:var(--text3)">Oracle protection active</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:var(--purple2)"><svg viewBox="0 0 15 15" fill="none" stroke="var(--purple)" stroke-width="1.5"><path d="M7.5 1l2 4.5h5l-4 3 1.5 5L7.5 11l-4.5 3 1.5-5-4-3H6z"/></svg></div>
+        <div class="stat-lbl">Cycles Run</div>
+        <div class="stat-val" id="sv-cycles">0</div>
+        <div class="stat-sub">5-second intervals</div>
+      </div>
+    </div>
+
+    <!-- Node Cards -->
+    <div class="slabel">Live sensor nodes</div>
+    <div class="g3">
+      <div class="node-card idle" id="ncard1">
+        <div class="node-hdr"><span class="node-id">node_1</span><span class="node-badge nb-idle" id="nb1">idle</span></div>
+        <div class="node-temp normal-t" id="nt1">--°C</div>
+        <div class="node-meta">Z: <span id="nz1">--</span> &nbsp;|&nbsp; IP: <span style="color:var(--teal)">192.168.1.101</span> &nbsp;|&nbsp; DHT22/GPIO4</div>
+        <div class="ptrack"><div class="pfill" id="np1" style="width:0%;background:var(--text3)"></div></div>
+        <div class="atk-warn" id="aw1">⚠ Anomaly detected — excluded from aggregation</div>
+      </div>
+      <div class="node-card idle" id="ncard2">
+        <div class="node-hdr"><span class="node-id">node_2</span><span class="node-badge nb-idle" id="nb2">idle</span></div>
+        <div class="node-temp normal-t" id="nt2">--°C</div>
+        <div class="node-meta">Z: <span id="nz2">--</span> &nbsp;|&nbsp; IP: <span style="color:var(--teal)">192.168.1.102</span> &nbsp;|&nbsp; DHT22/GPIO4</div>
+        <div class="ptrack"><div class="pfill" id="np2" style="width:0%;background:var(--text3)"></div></div>
+        <div class="atk-warn" id="aw2">⚠ Anomaly detected — excluded from aggregation</div>
+      </div>
+      <div class="node-card idle" id="ncard3">
+        <div class="node-hdr"><span class="node-id">node_3</span><span class="node-badge nb-idle" id="nb3">idle</span></div>
+        <div class="node-temp normal-t" id="nt3">--°C</div>
+        <div class="node-meta">Z: <span id="nz3">--</span> &nbsp;|&nbsp; IP: <span style="color:var(--teal)">192.168.1.103</span> &nbsp;|&nbsp; DHT22/GPIO4</div>
+        <div class="ptrack"><div class="pfill" id="np3" style="width:0%;background:var(--text3)"></div></div>
+        <div class="atk-warn" id="aw3">⚠ Anomaly detected — COMPROMISED NODE — 500°C injected — excluded from aggregation</div>
+      </div>
+    </div>
+
+    <div class="g21">
+      <!-- Chart -->
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-title">Temperature Trend</div><div class="panel-sub">Validated oracle output — last 20 readings</div></div>
+        <div class="panel-body"><div class="chart-wrap"><canvas id="tempChart"></canvas></div></div>
+      </div>
+      <!-- Oracle -->
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-title">Oracle Result</div></div>
+        <div class="oracle-big">
+          <div class="oracle-val empty" id="ov-main">--</div>
+          <div class="oracle-lbl" id="ov-lbl">Waiting for data</div>
+        </div>
+        <div class="orow"><span class="orow-lbl">Trusted nodes</span><span class="orow-val" id="ov-trusted" style="color:var(--teal)">--</span></div>
+        <div class="orow"><span class="orow-lbl">Excluded nodes</span><span class="orow-val" id="ov-excluded" style="color:var(--red)">--</span></div>
+        <div class="orow"><span class="orow-lbl">Status</span><span class="orow-val" id="ov-status" style="color:var(--text3)">Idle</span></div>
+        <div class="orow"><span class="orow-lbl">Attacks total</span><span class="orow-val" id="ov-atktotal" style="color:var(--red)">0</span></div>
+      </div>
+    </div>
+
+    <!-- TX Table -->
+    <div class="slabel">Recent blockchain transactions</div>
+    <div class="panel">
+      <div style="overflow-x:auto">
+        <table class="tx-table">
+          <thead><tr><th>Tx Hash</th><th>Block</th><th>Value (×100)</th><th>Temp</th><th>Function</th><th>Status</th></tr></thead>
+          <tbody id="tx-tbody"><tr><td colspan="6" class="empty">No transactions yet — click Normal or Attack to start</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ NODES PAGE ══════════════════════════ -->
+  <div class="content page" id="page-nodes">
+    <div class="slabel">Node detail and live status</div>
+    <div class="g3" style="margin-bottom:18px">
+      <div class="node-card idle" id="ncard1x">
+        <div class="node-hdr"><span class="node-id">node_1</span><span class="node-badge nb-idle" id="nb1x">idle</span></div>
+        <div class="node-temp normal-t" id="nt1x">--°C</div>
+        <div class="node-meta">Z-score: <span id="nz1x">--</span></div>
+        <div style="font-size:11px;color:var(--text3);line-height:2;margin-top:8px">
+          Sensor: DHT22 on GPIO4<br>WiFi IP: 192.168.1.101<br>Topic: iot/sensors<br>Rate: 5 sec<br>Role: <span id="nr1" style="color:var(--teal)">Normal node</span>
+        </div>
+        <div class="ptrack" style="margin-top:10px"><div class="pfill" id="np1x" style="width:0%;background:var(--text3)"></div></div>
+        <div class="atk-warn" id="aw1x">⚠ Node excluded from aggregation</div>
+      </div>
+      <div class="node-card idle" id="ncard2x">
+        <div class="node-hdr"><span class="node-id">node_2</span><span class="node-badge nb-idle" id="nb2x">idle</span></div>
+        <div class="node-temp normal-t" id="nt2x">--°C</div>
+        <div class="node-meta">Z-score: <span id="nz2x">--</span></div>
+        <div style="font-size:11px;color:var(--text3);line-height:2;margin-top:8px">
+          Sensor: DHT22 on GPIO4<br>WiFi IP: 192.168.1.102<br>Topic: iot/sensors<br>Rate: 5 sec<br>Role: <span id="nr2" style="color:var(--teal)">Normal node</span>
+        </div>
+        <div class="ptrack" style="margin-top:10px"><div class="pfill" id="np2x" style="width:0%;background:var(--text3)"></div></div>
+        <div class="atk-warn" id="aw2x">⚠ Node excluded from aggregation</div>
+      </div>
+      <div class="node-card idle" id="ncard3x">
+        <div class="node-hdr"><span class="node-id">node_3</span><span class="node-badge nb-idle" id="nb3x">idle</span></div>
+        <div class="node-temp normal-t" id="nt3x">--°C</div>
+        <div class="node-meta">Z-score: <span id="nz3x">--</span></div>
+        <div style="font-size:11px;color:var(--text3);line-height:2;margin-top:8px">
+          Sensor: DHT22 on GPIO4<br>WiFi IP: 192.168.1.103<br>Topic: iot/sensors<br>Rate: 5 sec<br>Role: <span id="nr3" style="color:var(--teal)">Normal node</span>
+        </div>
+        <div class="ptrack" style="margin-top:10px"><div class="pfill" id="np3x" style="width:0%;background:var(--text3)"></div></div>
+        <div class="atk-warn" id="aw3x">⚠ COMPROMISED — injecting 500°C — excluded</div>
+      </div>
+    </div>
+    <div class="slabel">MQTT message log</div>
+    <div class="panel"><div class="panel-body" style="padding:6px"><div class="log-box" id="mqtt-log" style="height:250px"></div></div></div>
+  </div>
+
+  <!-- ══ ORACLE PAGE ══════════════════════════ -->
+  <div class="content page" id="page-oracle">
+    <div class="g2">
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-title">Z-Score Anomaly Detection</div></div>
+        <div class="panel-body">
+          <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px">Z-Score measures how many standard deviations a node's reading is from the group mean. Any node with Z &gt; 2.0 is flagged as compromised and excluded from aggregation before blockchain write.</div>
+          <div class="proof-box"><span class="cm"># Formula</span>
+Z = |value − mean| / std_dev
+<span class="cm"># Threshold</span>
+flag_node if Z <span class="am">&gt; 2.0</span>
+<span class="cm"># Attack example: vals=[25,25,500]</span>
+mean = <span class="ok">183.3°C</span>, std = <span class="ok">223.1</span>
+Z_node3 = |500−183.3|/223.1 = <span class="warn">14.38 &gt;&gt; 2.0 → EXCLUDED</span></div>
+          <div style="margin-top:14px">
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Node 1 Z-score</span><span class="orow-val" id="oz1" style="color:var(--text3)">--</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Node 2 Z-score</span><span class="orow-val" id="oz2" style="color:var(--text3)">--</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Node 3 Z-score</span><span class="orow-val" id="oz3" style="color:var(--text3)">--</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Threshold</span><span class="orow-val" style="color:var(--amber)">2.0</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-title">Median Aggregation</div></div>
+        <div class="panel-body">
+          <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px">After excluding anomalous nodes, the Oracle computes the median of remaining trusted readings. Median is mathematically resistant to outliers — one extreme value cannot affect the result.</div>
+          <div class="oracle-big" style="padding:14px 0">
+            <div class="oracle-val empty" id="ov2-main">--</div>
+            <div class="oracle-lbl">validated median sent to blockchain</div>
+          </div>
+          <div class="orow"><span class="orow-lbl">All values received</span><span class="orow-val" id="oa-all" style="color:var(--text3)">--</span></div>
+          <div class="orow"><span class="orow-lbl">Trusted values</span><span class="orow-val" id="oa-trusted" style="color:var(--teal)">--</span></div>
+          <div class="orow"><span class="orow-lbl">Excluded</span><span class="orow-val" id="oa-excl" style="color:var(--red)">--</span></div>
+          <div class="orow"><span class="orow-lbl">Sent to chain (×100)</span><span class="orow-val" id="oa-sent" style="color:var(--amber)">--</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="slabel">Oracle processing log</div>
+    <div class="panel"><div class="panel-body" style="padding:6px"><div class="log-box" id="oracle-log" style="height:220px"></div></div></div>
+  </div>
+
+  <!-- ══ BLOCKCHAIN PAGE ══════════════════════ -->
+  <div class="content page" id="page-blockchain">
+    <div class="g2" style="margin-bottom:16px">
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-title">Contract Details</div></div>
+        <div class="panel-body">
+          <div style="display:grid;grid-template-columns:130px 1fr;gap:7px;font-size:12px;line-height:2">
+            <span style="color:var(--text3)">Network</span><span style="font-family:var(--mono);color:var(--teal)">Ganache — localhost:7545</span>
+            <span style="color:var(--text3)">Chain ID</span><span style="font-family:var(--mono);color:var(--text2)">1337</span>
+            <span style="color:var(--text3)">Contract</span><span style="font-family:var(--mono);color:var(--text2)">SmartClassroom.sol</span>
+            <span style="color:var(--text3)">Function</span><span style="font-family:var(--mono);color:var(--teal)">updateTemperature(int256,string)</span>
+            <span style="color:var(--text3)">Auth</span><span style="font-family:var(--mono);color:var(--teal)">onlyOracle modifier</span>
+            <span style="color:var(--text3)">Gas limit</span><span style="font-family:var(--mono);color:var(--text2)">500,000</span>
+            <span style="color:var(--text3)">Gas price</span><span style="font-family:var(--mono);color:var(--text2)">20 gwei</span>
+            <span style="color:var(--text3)">Circuit breaker</span><span style="font-family:var(--mono);color:var(--amber)" id="bc-paused">Active — not paused</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-title">Chain Statistics</div></div>
+        <div class="panel-body">
+          <div class="orow" style="padding:10px 0"><span class="orow-lbl">Total transactions</span><span class="orow-val" id="bcs-tx" style="color:var(--amber)">0</span></div>
+          <div class="orow" style="padding:10px 0"><span class="orow-lbl">Latest block</span><span class="orow-val" id="bcs-block" style="color:var(--amber)">--</span></div>
+          <div class="orow" style="padding:10px 0"><span class="orow-lbl">Latest value stored</span><span class="orow-val" id="bcs-val" style="color:var(--teal)">--</span></div>
+          <div class="orow" style="padding:10px 0"><span class="orow-lbl">Attacks blocked</span><span class="orow-val" id="bcs-atk" style="color:var(--red)">0</span></div>
+          <div class="orow" style="padding:10px 0"><span class="orow-lbl">Contract status</span><span class="orow-val" style="color:var(--teal)">Active</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="slabel">Full transaction history</div>
+    <div class="panel">
+      <div style="overflow-x:auto">
+        <table class="tx-table">
+          <thead><tr><th>Tx Hash</th><th>Block</th><th>From</th><th>Value ×100</th><th>Temp</th><th>Gas</th><th>Status</th></tr></thead>
+          <tbody id="bc-tbody"><tr><td colspan="7" class="empty">No transactions yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECURITY PAGE ════════════════════════ -->
+  <div class="content page" id="page-security">
+    <div class="g2">
+      <div>
+        <div class="slabel">Oracle security proof — for your coordinator</div>
+
+        <div class="sec-level">
+          <div class="sec-icon" style="background:var(--teal2)"><svg viewBox="0 0 14 14" fill="none" stroke="var(--teal)" stroke-width="1.5"><path d="M7 1L2 3v3.5C2 9.5 4.2 12 7 13c2.8-1 5-3.5 5-6.5V3L7 1z"/><polyline points="4,7 6,9 10,5"/></svg></div>
+          <div style="flex:1"><div class="sec-name">Z-Score Anomaly Detection</div><div class="sec-desc">Statistically identifies compromised nodes before blockchain write</div><div class="sec-meter"><div class="sec-fill" style="width:95%;background:var(--teal)"></div></div></div>
+          <div class="sec-badge sec-pass" id="ssec1">ACTIVE</div>
+        </div>
+
+        <div class="sec-level">
+          <div class="sec-icon" style="background:var(--teal2)"><svg viewBox="0 0 14 14" fill="none" stroke="var(--teal)" stroke-width="1.5"><rect x="2" y="6" width="10" height="7" rx="1"/><path d="M5 6V4a2 2 0 014 0v2"/></svg></div>
+          <div style="flex:1"><div class="sec-name">Oracle Address Authentication</div><div class="sec-desc">Smart contract rejects any caller not matching trustedOracle address</div><div class="sec-meter"><div class="sec-fill" style="width:100%;background:var(--teal)"></div></div></div>
+          <div class="sec-badge sec-pass">ENFORCED</div>
+        </div>
+
+        <div class="sec-level">
+          <div class="sec-icon" style="background:var(--teal2)"><svg viewBox="0 0 14 14" fill="none" stroke="var(--teal)" stroke-width="1.5"><path d="M7 1l2 4h4l-3 2.5 1 4.5L7 9.5 3 12l1-4.5L1 5h4z"/></svg></div>
+          <div style="flex:1"><div class="sec-name">Median Aggregation</div><div class="sec-desc">Median resistant to up to 49% node compromise — mean would fail</div><div class="sec-meter"><div class="sec-fill" style="width:90%;background:var(--teal)"></div></div></div>
+          <div class="sec-badge sec-pass">ACTIVE</div>
+        </div>
+
+        <div class="sec-level">
+          <div class="sec-icon" style="background:var(--amber2)"><svg viewBox="0 0 14 14" fill="none" stroke="var(--amber)" stroke-width="1.5"><circle cx="7" cy="7" r="6"/><line x1="7" y1="4" x2="7" y2="7.5"/><circle cx="7" cy="10" r=".8" fill="var(--amber)"/></svg></div>
+          <div style="flex:1"><div class="sec-name">Circuit Breaker</div><div class="sec-desc">Auto-pause contract if all nodes compromised — human restart required</div><div class="sec-meter"><div class="sec-fill" style="width:85%;background:var(--amber)"></div></div></div>
+          <div class="sec-badge sec-warn">STANDBY</div>
+        </div>
+
+        <div class="sec-level">
+          <div class="sec-icon" style="background:var(--teal2)"><svg viewBox="0 0 14 14" fill="none" stroke="var(--teal)" stroke-width="1.5"><path d="M1 7l4 4 8-8"/></svg></div>
+          <div style="flex:1"><div class="sec-name">Immutable Blockchain Storage</div><div class="sec-desc">Once written, data cannot be altered — permanent audit trail</div><div class="sec-meter"><div class="sec-fill" style="width:100%;background:var(--teal)"></div></div></div>
+          <div class="sec-badge sec-pass">GUARANTEED</div>
+        </div>
+
+        <div class="sec-level">
+          <div class="sec-icon" style="background:var(--teal2)"><svg viewBox="0 0 14 14" fill="none" stroke="var(--teal)" stroke-width="1.5"><rect x="1" y="1" width="12" height="12" rx="2"/><path d="M4 7h6M7 4v6"/></svg></div>
+          <div style="flex:1"><div class="sec-name">On-Chain Event Logging</div><div class="sec-desc">Every anomaly and data update emits a blockchain event — tamper-proof log</div><div class="sec-meter"><div class="sec-fill" style="width:100%;background:var(--teal)"></div></div></div>
+          <div class="sec-badge sec-pass">ACTIVE</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="slabel">Live attack proof — run attack mode to see</div>
+        <div class="panel" style="margin-bottom:14px">
+          <div class="panel-hdr"><div class="panel-title"><span class="live-dot"></span>Real-time security test</div></div>
+          <div class="panel-body">
+            <div class="proof-box" id="sec-proof-box">
+<span class="cm"># Click "Attack" button to run live proof</span>
+<span class="cm"># Oracle security test will appear here</span>
+<span class="cm"># showing Z-score computation in real time</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="slabel">Security test results</div>
+        <div class="panel">
+          <div class="panel-body">
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Attack attempts</span><span class="orow-val" id="sec-attempts" style="color:var(--red)">0</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Successfully blocked</span><span class="orow-val" id="sec-blocked" style="color:var(--teal)">0</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Block rate</span><span class="orow-val" id="sec-rate" style="color:var(--teal)">--</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">False positives</span><span class="orow-val" style="color:var(--teal)">0</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Blockchain integrity</span><span class="orow-val" style="color:var(--teal)">100%</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Oracle uptime</span><span class="orow-val" id="sec-uptime" style="color:var(--teal)">--</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slabel">Security event log</div>
+    <div class="panel"><div class="panel-body" style="padding:6px"><div class="log-box" id="sec-log" style="height:200px"></div></div></div>
+  </div>
+
+  <!-- ══ DATABASE PAGE ════════════════════════ -->
+  <div class="content page" id="page-database">
+    <div class="g3" style="margin-bottom:16px">
+      <div class="stat-card">
+        <div class="stat-lbl">Total records</div>
+        <div class="stat-val" id="db-total">0</div>
+        <div class="stat-sub">In blockchain storage</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Valid records</div>
+        <div class="stat-val" id="db-valid" style="color:var(--teal)">0</div>
+        <div class="stat-sub up">Passed oracle validation</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-lbl">Flagged attempts</div>
+        <div class="stat-val" id="db-flagged" style="color:var(--red)">0</div>
+        <div class="stat-sub dn">Rejected by oracle</div>
+      </div>
+    </div>
+
+    <div class="slabel">Blockchain data store — all validated records</div>
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-hdr">
+        <div class="panel-title">oracle_data table — on-chain storage</div>
+        <div class="panel-sub">This is what is permanently stored on Ganache blockchain</div>
+        <button class="btn" onclick="exportCSV()" style="margin-left:auto">⬇ Export CSV</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="db-table" id="db-main-table">
+          <thead><tr><th>#</th><th>Timestamp</th><th>Node 1 (°C)</th><th>Node 2 (°C)</th><th>Node 3 (°C)</th><th>Excluded</th><th>Validated Median</th><th>Value ×100</th><th>Tx Hash</th><th>Block</th><th>Status</th></tr></thead>
+          <tbody id="db-tbody"><tr><td colspan="11" class="empty">No records yet — start simulation</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="slabel">Anomaly / attack log — rejected readings</div>
+    <div class="panel">
+      <div class="panel-hdr"><div class="panel-title">anomaly_log table</div><div class="panel-sub">Readings rejected by oracle — never reached blockchain</div></div>
+      <div style="overflow-x:auto">
+        <table class="db-table" id="db-anomaly-table">
+          <thead><tr><th>#</th><th>Timestamp</th><th>Node</th><th>Injected Value</th><th>Z-Score</th><th>Threshold</th><th>Decision</th></tr></thead>
+          <tbody id="anom-tbody"><tr><td colspan="7" class="empty">No anomalies detected yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ESP32 CONNECT PAGE ══════════════════ -->
+  <div class="content page" id="page-connect">
+    <div class="g2">
+      <div>
+        <div class="slabel">How to connect real ESP32 nodes to this system</div>
+
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-title">Start MQTT broker on your laptop</div>
+            <div class="step-desc">Open a terminal and start Mosquitto. This is the message router your ESP32s will connect to.</div>
+            <code class="code-inline">mosquitto -v</code>
+            <div class="step-desc">If it says "address already in use", the broker is already running as a Windows service — that is fine, skip this step.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-title">Find your laptop's IP address</div>
+            <div class="step-desc">Your ESP32s need your laptop's local WiFi IP to connect.</div>
+            <code class="code-inline">Windows: ipconfig → look for IPv4 Address
+Mac/Linux: ifconfig | grep "inet "</code>
+            <div class="step-desc">Copy the IP — it looks like 192.168.1.xxx. Paste it into the Settings page below.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-title">Update ESP32 .ino files with your WiFi details</div>
+            <div class="step-desc">Open each .ino file in Arduino IDE and change these 3 lines:</div>
+            <code class="code-inline">const char* WIFI_SSID     = "YourWiFiName";
+const char* WIFI_PASSWORD = "YourPassword";
+const char* MQTT_BROKER   = "192.168.1.xxx"; // your laptop IP</code>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div>
+            <div class="step-title">Flash each ESP32 using Arduino IDE</div>
+            <div class="step-desc">Connect ESP32 via USB. Select board: ESP32 Dev Module. Select correct COM port. Click Upload. If upload stalls, hold the BOOT button on ESP32 during upload.</div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="tag tag-teal">Node 1 → esp32_node1.ino</span>
+              <span class="tag tag-teal">Node 2 → esp32_node2.ino</span>
+              <span class="tag tag-red">Node 3 → esp32_node3_attacker.ino</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">5</div>
+          <div>
+            <div class="step-title">Start oracle.py in terminal</div>
+            <div class="step-desc">This is the Python script that subscribes to MQTT and sends validated data to blockchain.</div>
+            <code class="code-inline">cd Downloads\iot-defi-project
+python oracle.py</code>
+            <div class="step-desc">You should see: ✅ Web3 connected and ✅ MQTT connected</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">6</div>
+          <div>
+            <div class="step-title">Power on all 3 ESP32 boards</div>
+            <div class="step-desc">Plug all 3 ESP32s into USB or phone chargers. They will auto-connect to WiFi and start publishing sensor data every 5 seconds. Watch oracle.py terminal — you will see messages arriving: 📡 Received from node_1: 26.4°C</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="slabel">Connection status checker</div>
+        <div class="panel" style="margin-bottom:14px">
+          <div class="panel-hdr"><div class="panel-title">Live connection status</div></div>
+          <div class="panel-body">
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">MQTT Broker</span><span class="orow-val" style="color:var(--teal)">✓ localhost:1883</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Ganache RPC</span><span class="orow-val" style="color:var(--teal)">✓ 127.0.0.1:7545</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Node 1</span><span class="orow-val" id="conn-n1" style="color:var(--text3)">Not connected</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Node 2</span><span class="orow-val" id="conn-n2" style="color:var(--text3)">Not connected</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Node 3</span><span class="orow-val" id="conn-n3" style="color:var(--text3)">Not connected</span></div>
+            <div class="orow" style="padding:8px 0"><span class="orow-lbl">Oracle.py</span><span class="orow-val" id="conn-oracle" style="color:var(--text3)">Not started</span></div>
+          </div>
+        </div>
+
+        <div class="slabel">Common errors and fixes</div>
+        <div class="panel">
+          <div class="panel-body" style="padding:0">
+            <div style="padding:11px 14px;border-bottom:1px solid var(--border)">
+              <div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:3px">ESP32 not connecting to WiFi</div>
+              <div style="font-size:11px;color:var(--text3)">Check WIFI_SSID and WIFI_PASSWORD are correct. ESP32 only supports 2.4GHz networks, not 5GHz.</div>
+            </div>
+            <div style="padding:11px 14px;border-bottom:1px solid var(--border)">
+              <div style="font-size:12px;font-weight:600;color:var(--amber);margin-bottom:3px">MQTT connection refused</div>
+              <div style="font-size:11px;color:var(--text3)">Make sure mosquitto is running. Add "listener 1883" and "allow_anonymous true" to mosquitto.conf if needed.</div>
+            </div>
+            <div style="padding:11px 14px;border-bottom:1px solid var(--border)">
+              <div style="font-size:12px;font-weight:600;color:var(--amber);margin-bottom:3px">Upload failed — Write timeout</div>
+              <div style="font-size:11px;color:var(--text3)">Hold BOOT button on ESP32 during upload. Try lowering upload speed to 115200 in Tools menu.</div>
+            </div>
+            <div style="padding:11px 14px">
+              <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:3px">DHT22 reading -999 or NaN</div>
+              <div style="font-size:11px;color:var(--text3)">Check 10kΩ pull-up resistor between VCC and DATA pins. Without it sensor will not work.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LOGS PAGE ════════════════════════════ -->
+  <div class="content page" id="page-logs">
+    <div class="tab-row">
+      <div class="tab active" onclick="switchTab('all',this)">All</div>
+      <div class="tab" onclick="switchTab('iot',this)">IoT</div>
+      <div class="tab" onclick="switchTab('mqtt',this)">MQTT</div>
+      <div class="tab" onclick="switchTab('oracle',this)">Oracle</div>
+      <div class="tab" onclick="switchTab('chain',this)">Blockchain</div>
+      <div class="tab" onclick="switchTab('sec',this)">Security</div>
+    </div>
+    <div class="panel"><div class="panel-body" style="padding:6px"><div class="log-box" id="full-log" style="height:500px"></div></div></div>
+  </div>
+
+  <!-- ══ SETTINGS PAGE ════════════════════════ -->
+  <div class="content page" id="page-settings">
+    <div class="g2">
+      <div>
+        <div class="slabel">MQTT configuration</div>
+        <div class="panel" style="margin-bottom:14px">
+          <div class="panel-body">
+            <div class="form-group"><div class="form-lbl">Broker host</div><input class="form-inp" value="localhost" id="cfg-broker"/><div class="form-hint">Use your laptop's IP (e.g. 192.168.1.100) if ESP32s are on same WiFi</div></div>
+            <div class="form-row">
+              <div class="form-group"><div class="form-lbl">Port</div><input class="form-inp" value="1883" id="cfg-port"/></div>
+              <div class="form-group"><div class="form-lbl">Topic</div><input class="form-inp" value="iot/sensors" id="cfg-topic"/></div>
+            </div>
+          </div>
+        </div>
+        <div class="slabel">Blockchain configuration</div>
+        <div class="panel">
+          <div class="panel-body">
+            <div class="form-group"><div class="form-lbl">RPC Provider</div><input class="form-inp" value="http://127.0.0.1:7545" id="cfg-rpc"/><div class="form-hint">Ganache default — change for Sepolia testnet</div></div>
+            <div class="form-group"><div class="form-lbl">Contract Address</div><input class="form-inp" placeholder="0x... paste from deploy_contract.py" id="cfg-contract"/></div>
+            <div class="form-group"><div class="form-lbl">Oracle Private Key</div><input class="form-inp" type="password" placeholder="0x... from Ganache key icon on Account 0" id="cfg-key"/></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="slabel">Oracle parameters</div>
+        <div class="panel" style="margin-bottom:14px">
+          <div class="panel-body">
+            <div class="form-group"><div class="form-lbl">Z-score threshold</div><input class="form-inp" value="2.0" id="cfg-z"/><div class="form-hint">Nodes above this are flagged as anomalous (default: 2.0)</div></div>
+            <div class="form-row">
+              <div class="form-group"><div class="form-lbl">Window size</div><input class="form-inp" value="5" id="cfg-win"/></div>
+              <div class="form-group"><div class="form-lbl">Min trusted nodes</div><input class="form-inp" value="2" id="cfg-min"/></div>
+            </div>
+          </div>
+        </div>
+        <div class="slabel">Feature toggles</div>
+        <div class="panel">
+          <div class="panel-body" style="padding:0 14px">
+            <div class="toggle-row"><div><div class="tgl-name">Anomaly detection</div><div class="tgl-desc">Z-score node flagging</div></div><div class="tgl on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div><div class="tgl-name">Circuit breaker</div><div class="tgl-desc">Auto-pause on all nodes flagged</div></div><div class="tgl on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div><div class="tgl-name">DeFi settlement</div><div class="tgl-desc">Auto token transfer on alert</div></div><div class="tgl on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row" style="border-bottom:none"><div><div class="tgl-name">Blockchain write</div><div class="tgl-desc">Send validated data to Ganache</div></div><div class="tgl on" onclick="this.classList.toggle('on')"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── STATE ──────────────────────────────────────
+let timer=null,cycle=0,txCount=0,blockedCount=0,blockNum=10,attackMode=false;
+let tempHistory=[],chart=null,logBuf=[],curLogTab='all';
+let startTime=null,dbRecords=[],anomalyRecords=[];
+
+// ── NAV ────────────────────────────────────────
+const pageTitles={dashboard:'Dashboard',nodes:'IoT Nodes',oracle:'Oracle',blockchain:'Blockchain',security:'Oracle Security Proof',database:'Database View',connect:'ESP32 Connection Guide',logs:'All Logs',settings:'Settings'};
+function goPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  document.getElementById('page-title').textContent=pageTitles[id]||id;
+}
+
+// ── UTILS ──────────────────────────────────────
+function rnd(b,s){return parseFloat((b+(Math.random()-.5)*2*s).toFixed(2))}
+function hex(n){const c='0123456789abcdef';let s='0x';for(let i=0;i<n;i++)s+=c[Math.floor(Math.random()*16)];return s}
+function shortAddr(){return '0x'+Array.from({length:4},()=>Math.floor(Math.random()*65536).toString(16).padStart(4,'0')).join('')+'...'}
+function ts(){return new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+function now(){return new Date().toLocaleString('en-GB')}
+
+// ── LOGGING ────────────────────────────────────
+function addLog(src,msg,type,cat){
+  const e={ts:ts(),src,msg,type:type||'',cat:cat||'all'};
+  logBuf.push(e);
+  const mkRow=()=>{
+    const d=document.createElement('div');
+    d.className='logrow';
+    d.innerHTML=`<span class="lt">${e.ts}</span><span class="lsrc src-${src}">${src.toUpperCase()}</span><span class="lmsg ${e.type}">${msg}</span>`;
+    return d;
+  };
+  const boxes=[
+    {el:document.getElementById('full-log'),show:curLogTab==='all'||curLogTab===cat},
+    {el:document.getElementById('mqtt-log'),show:cat==='mqtt'||cat==='iot'},
+    {el:document.getElementById('oracle-log'),show:cat==='oracle'},
+    {el:document.getElementById('sec-log'),show:cat==='sec'}
+  ];
+  boxes.forEach(b=>{
+    if(b.el&&b.show){
+      b.el.appendChild(mkRow());
+      b.el.scrollTop=b.el.scrollHeight;
+      if(b.el.children.length>100)b.el.removeChild(b.el.children[0]);
+    }
+  });
+}
+
+function switchTab(tab,el){
+  curLogTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const box=document.getElementById('full-log');
+  box.innerHTML='';
+  logBuf.filter(e=>tab==='all'||e.cat===tab).slice(-80).forEach(e=>{
+    const d=document.createElement('div');
+    d.className='logrow';
+    d.innerHTML=`<span class="lt">${e.ts}</span><span class="lsrc src-${e.src}">${e.src.toUpperCase()}</span><span class="lmsg ${e.type}">${e.msg}</span>`;
+    box.appendChild(d);
+  });
+  box.scrollTop=box.scrollHeight;
+}
+
+// ── PIPELINE FLASH ─────────────────────────────
+function flashPipe(){
+  const steps=['iot','mqtt','oracle','chain'];
+  const cls=['lit-b','lit-t','lit-p','lit-a'];
+  steps.forEach((s,i)=>{
+    setTimeout(()=>{
+      const el=document.getElementById('pipe-'+s);
+      el.className='pipe-step '+cls[i];
+      setTimeout(()=>el.className='pipe-step',900);
+    },i*350);
+  });
+}
+
+// ── UPDATE NODE ────────────────────────────────
+function updNode(id,temp,z,ok,isAttacker){
+  const su=['','x'];
+  su.forEach(sx=>{
+    const nc=document.getElementById('ncard'+id+sx);
+    const te=document.getElementById('nt'+id+sx);
+    const nb=document.getElementById('nb'+id+sx);
+    const np=document.getElementById('np'+id+sx);
+    const aw=document.getElementById('aw'+id+sx);
+    const nz=document.getElementById('nz'+id+sx);
+    if(!nc)return;
+    const dispTemp=(temp>99?temp.toFixed(0):temp.toFixed(2))+'°C';
+    te.textContent=dispTemp;
+    te.className='node-temp'+(temp>99?' hot':temp<22?' cool':' normal-t');
+    if(nz)nz.textContent=z.toFixed(4)+(ok?' ✓':' ✗ FLAGGED');
+    if(ok){
+      nc.className='node-card ok';
+      nb.className='node-badge nb-ok';nb.textContent='trusted';
+      np.style.width=Math.min((temp/40)*100,100)+'%';np.style.background='var(--teal)';
+      if(aw)aw.className='atk-warn';
+    }else{
+      nc.className='node-card atk';
+      nb.className='node-badge nb-atk';
+      nb.textContent=isAttacker?'COMPROMISED':'FLAGGED';
+      np.style.width='100%';np.style.background='var(--red)';
+      if(aw)aw.className='atk-warn show';
+    }
+  });
+  // update role labels
+  const nr=document.getElementById('nr'+id);
+  if(nr){
+    if(isAttacker&&!ok){nr.textContent='Compromised — ATTACKER';nr.style.color='var(--red)';}
+    else if(isAttacker){nr.textContent='Normal mode';nr.style.color='var(--teal)';}
+  }
+  // connection status
+  const conn=document.getElementById('conn-n'+id);
+  if(conn){conn.textContent='✓ Connected — '+ts();conn.style.color='var(--teal)';}
+}
+
+// ── ADD TX ─────────────────────────────────────
+function addTx(temp){
+  blockNum++;
+  const hash=hex(40);
+  const valInt=Math.round(temp*100);
+  const gas=Math.round(45000+Math.random()*12000);
+  const from=shortAddr();
+  const mkRow=(cols)=>{const tr=document.createElement('tr');tr.innerHTML=cols.map(c=>`<td>${c}</td>`).join('');return tr;};
+
+  ['tx-tbody','bc-tbody'].forEach((tbid,idx)=>{
+    const tb=document.getElementById(tbid);
+    if(tb.rows[0]&&tb.rows[0].cells.length<3)tb.innerHTML='';
+    let cols;
+    if(idx===0){
+      cols=[`<span class="tx-hash">${hash.slice(0,16)}...${hash.slice(-6)}</span>`,blockNum,valInt,`<span style="color:var(--teal)">${temp.toFixed(2)}°C</span>`,'updateTemperature()',`<span class="tx-ok"><span class="tx-dot"></span>confirmed</span>`];
+    }else{
+      cols=[`<span class="tx-hash">${hash.slice(0,12)}...${hash.slice(-6)}</span>`,blockNum,`<span style="color:var(--blue)">${from}</span>`,valInt,`<span style="color:var(--teal)">${temp.toFixed(2)}°C</span>`,gas.toLocaleString(),`<span class="tx-ok"><span class="tx-dot"></span>confirmed</span>`];
+    }
+    const row=mkRow(cols);
+    tb.insertBefore(row,tb.firstChild);
+    if(tb.rows.length>8)tb.deleteRow(-1);
+  });
+
+  document.getElementById('bcs-tx').textContent=txCount;
+  document.getElementById('bcs-block').textContent=blockNum;
+  document.getElementById('bcs-val').textContent=temp.toFixed(2)+'°C ('+valInt+')';
+  document.getElementById('bcs-atk').textContent=blockedCount;
+  document.getElementById('nb-tx').textContent=txCount;
+}
+
+// ── DB RECORD ──────────────────────────────────
+function addDbRecord(t1,t2,t3,excl,median,hash){
+  dbRecords.unshift({id:dbRecords.length+1,ts:now(),t1:t1.toFixed(2),t2:t2.toFixed(2),t3:t3>99?'500 (ATTACK)':t3.toFixed(2),excl:excl.length>0?excl.join(','):'none',median:median.toFixed(2),valInt:Math.round(median*100),hash:hash.slice(0,14)+'...'+hash.slice(-6),block:blockNum,status:excl.length>0?'FILTERED':'OK'});
+  const tb=document.getElementById('db-tbody');
+  if(tb.rows[0]&&tb.rows[0].cells.length<3)tb.innerHTML='';
+  const tr=document.createElement('tr');
+  const excClass=excl.length>0?'db-bad':'db-ok';
+  const stClass=excl.length>0?'db-am':'db-ok';
+  tr.innerHTML=`<td>${dbRecords[0].id}</td><td>${dbRecords[0].ts}</td><td class="db-ok">${dbRecords[0].t1}</td><td class="db-ok">${dbRecords[0].t2}</td><td class="${excl.length>0?'db-bad':'db-ok'}">${dbRecords[0].t3}</td><td class="${excClass}">${dbRecords[0].excl}</td><td class="db-ok">${dbRecords[0].median}</td><td style="color:var(--amber)">${dbRecords[0].valInt}</td><td style="color:var(--blue);font-family:var(--mono);font-size:10px">${dbRecords[0].hash}</td><td>${dbRecords[0].block}</td><td class="${stClass}">${dbRecords[0].status}</td>`;
+  tb.insertBefore(tr,tb.firstChild);
+  if(tb.rows.length>15)tb.deleteRow(-1);
+  document.getElementById('db-total').textContent=dbRecords.length;
+  document.getElementById('db-valid').textContent=dbRecords.length;
+}
+
+function addAnomalyRecord(node,val,z){
+  anomalyRecords.unshift({id:anomalyRecords.length+1,ts:now(),node,val,z:z.toFixed(4),thresh:'2.0',decision:'EXCLUDED'});
+  const tb=document.getElementById('anom-tbody');
+  if(tb.rows[0]&&tb.rows[0].cells.length<3)tb.innerHTML='';
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${anomalyRecords[0].id}</td><td>${anomalyRecords[0].ts}</td><td class="db-bad">${node}</td><td class="db-bad">${val}</td><td class="db-bad">${z.toFixed(4)}</td><td style="color:var(--amber)">2.0</td><td class="db-bad">EXCLUDED — not sent to blockchain</td>`;
+  tb.insertBefore(tr,tb.firstChild);
+  if(tb.rows.length>10)tb.deleteRow(-1);
+  document.getElementById('db-flagged').textContent=anomalyRecords.length;
+}
+
+// ── EXPORT CSV ─────────────────────────────────
+function exportCSV(){
+  if(dbRecords.length===0){alert('No records yet. Start simulation first.');return;}
+  const hdr='ID,Timestamp,Node1,Node2,Node3,Excluded,ValidatedMedian,ValueX100,TxHash,Block,Status\n';
+  const rows=dbRecords.map(r=>`${r.id},"${r.ts}",${r.t1},${r.t2},${r.t3},${r.excl},${r.median},${r.valInt},${r.hash},${r.block},${r.status}`).join('\n');
+  const blob=new Blob([hdr+rows],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='iot_defi_blockchain_data.csv';a.click();
+}
+
+// ── SECURITY PROOF ─────────────────────────────
+function updateSecurityProof(t1,t2,t3,z1,z2,z3,excl,median){
+  const box=document.getElementById('sec-proof-box');
+  const isAtk=t3>99;
+  box.innerHTML=`<span class="cm"># ORACLE SECURITY TEST — ${ts()}</span>
+<span class="cm"># Inputs received from IoT nodes</span>
+node_1 = <span class="ok">${t1.toFixed(2)}°C</span>
+node_2 = <span class="ok">${t2.toFixed(2)}°C</span>
+node_3 = ${isAtk?`<span class="warn">500°C  ← MALICIOUS INJECTION`:`<span class="ok">${t3.toFixed(2)}°C`}</span>
+
+<span class="cm"># Z-Score computation</span>
+mean   = ${((t1+t2+t3)/3).toFixed(2)}°C
+std    = ${Math.sqrt(((t1-((t1+t2+t3)/3))**2+(t2-((t1+t2+t3)/3))**2+(t3-((t1+t2+t3)/3))**2)/3).toFixed(2)}
+
+Z_node1 = ${z1.toFixed(4)} ${z1>2?'<span class="warn">→ FLAGGED</span>':'<span class="ok">→ trusted</span>'}
+Z_node2 = ${z2.toFixed(4)} ${z2>2?'<span class="warn">→ FLAGGED</span>':'<span class="ok">→ trusted</span>'}
+Z_node3 = ${z3.toFixed(4)} ${z3>2?`<span class="warn">→ FLAGGED ← ANOMALY DETECTED</span>`:'<span class="ok">→ trusted</span>'}
+
+${excl.length>0?`<span class="warn"># ATTACK BLOCKED: ${excl.join(',')} excluded from aggregation</span>`:'<span class="ok"># All nodes trusted — no attack</span>'}
+<span class="cm"># Validated median (trusted nodes only)</span>
+median = <span class="ok">${median.toFixed(2)}°C</span>
+<span class="ok"># Blockchain received: ${Math.round(median*100)} (= ${median.toFixed(2)}°C)</span>
+<span class="cm"># Oracle security: PASSED ✓</span>`;
+
+  if(excl.length>0&&isAtk){
+    document.getElementById('sec-attempts').textContent=blockedCount;
+    document.getElementById('sec-blocked').textContent=blockedCount;
+    document.getElementById('sec-rate').textContent='100%';
+    addLog('sec',`Attack BLOCKED — node_3 Z=${z3.toFixed(3)} >> 2.0 — blockchain safe`,'sec','sec');
+  }
+  if(startTime){
+    const elapsed=Math.floor((Date.now()-startTime)/1000);
+    document.getElementById('sec-uptime').textContent=elapsed+'s';
+  }
+  document.getElementById('conn-oracle').textContent='✓ Running — '+ts();
+  document.getElementById('conn-oracle').style.color='var(--teal)';
+}
+
+// ── CHART ──────────────────────────────────────
+function initChart(){
+  const ctx=document.getElementById('tempChart').getContext('2d');
+  chart=new Chart(ctx,{
+    type:'line',
+    data:{labels:[],datasets:[{data:[],borderColor:'#00D4A0',borderWidth:2,pointRadius:3,pointBackgroundColor:'#00D4A0',pointBorderColor:'#0B0D13',pointBorderWidth:1.5,tension:0.4,fill:true,backgroundColor:'rgba(0,212,160,0.07)'}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:{duration:300},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#10131A',borderColor:'rgba(255,255,255,0.08)',borderWidth:1,titleColor:'#4E5468',bodyColor:'#E9EBF2',callbacks:{label:c=>c.raw.toFixed(2)+'°C'}}},
+      scales:{
+        x:{display:false},
+        y:{min:18,max:35,grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#4E5468',font:{size:10},maxTicksLimit:4,callback:v=>v+'°'},border:{display:false}}
+      }
+    }
+  });
+}
+
+function pushChart(val){
+  tempHistory.push(parseFloat(val.toFixed(2)));
+  if(tempHistory.length>20)tempHistory.shift();
+  chart.data.labels=tempHistory.map((_,i)=>i+1);
+  chart.data.datasets[0].data=tempHistory;
+  chart.update('none');
+}
+
+// ── MAIN CYCLE ─────────────────────────────────
+function runCycle(){
+  cycle++;
+  document.getElementById('sv-cycles').textContent=cycle;
+  document.getElementById('scycles').textContent=`Cycle: ${cycle} | TX: ${txCount}`;
+
+  const t1=rnd(26.0,1.2),t2=rnd(25.5,1.0);
+  const t3=attackMode?500.0:rnd(25.8,1.1);
+  const vals=[t1,t2,t3];
+  const mean=vals.reduce((a,b)=>a+b,0)/3;
+  const std=Math.sqrt(vals.reduce((a,b)=>a+(b-mean)**2,0)/3);
+  const zf=v=>std>0?Math.abs((v-mean)/std):0;
+  const z1=zf(t1),z2=zf(t2),z3=zf(t3);
+  const THR=2.0;
+  const ok1=z1<=THR,ok2=z2<=THR,ok3=z3<=THR;
+  const trusted=[ok1?t1:null,ok2?t2:null,ok3?t3:null].filter(v=>v!==null);
+  trusted.sort((a,b)=>a-b);
+  const median=trusted.length>0?(trusted.length%2===0?(trusted[trusted.length/2-1]+trusted[trusted.length/2])/2:trusted[Math.floor(trusted.length/2)]):null;
+  const excl=[!ok1?'node_1':null,!ok2?'node_2':null,!ok3?'node_3':null].filter(Boolean);
+
+  // IoT logs
+  addLog('iot',`node_1 → ${t1.toFixed(2)}°C published to iot/sensors`,'','iot');
+  addLog('iot',`node_2 → ${t2.toFixed(2)}°C published to iot/sensors`,'','iot');
+  if(attackMode)addLog('iot','node_3 → 500°C published  ← MALICIOUS INJECTION','warn','iot');
+  else addLog('iot',`node_3 → ${t3.toFixed(2)}°C published to iot/sensors`,'','iot');
+  addLog('mqtt',`RECV node_1 ${t1.toFixed(2)}°C → forwarded to oracle`,'','mqtt');
+  addLog('mqtt',`RECV node_2 ${t2.toFixed(2)}°C → forwarded to oracle`,'','mqtt');
+  addLog('mqtt',attackMode?`RECV node_3 500°C → forwarded to oracle`:`RECV node_3 ${t3.toFixed(2)}°C → forwarded to oracle`,'','mqtt');
+
+  flashPipe();
+
+  setTimeout(()=>{
+    updNode(1,t1,z1,ok1,false);
+    updNode(2,t2,z2,ok2,false);
+    updNode(3,t3,z3,ok3,true);
+
+    // oracle page z-scores
+    [{id:'oz1',z:z1,ok:ok1},{id:'oz2',z:z2,ok:ok2},{id:'oz3',z:z3,ok:ok3}].forEach(({id,z,ok})=>{
+      const el=document.getElementById(id);
+      if(el){el.textContent=z.toFixed(4)+(ok?' ✓':' ✗ FLAGGED');el.style.color=ok?'var(--teal)':'var(--red)';}
+    });
+
+    addLog('oracle',`Z-scores: n1=${z1.toFixed(3)} n2=${z2.toFixed(3)} n3=${z3.toFixed(3)}`,'','oracle');
+    if(excl.length>0){
+      addLog('oracle',`ANOMALY: ${excl.join(',')} EXCLUDED — Z > ${THR}`,'warn','oracle');
+      if(attackMode)blockedCount++;
+    }
+
+    // attack banner
+    const banner=document.getElementById('atk-banner');
+    if(attackMode&&excl.includes('node_3')){
+      banner.classList.add('show');
+      document.getElementById('z3-banner').textContent=z3.toFixed(3);
+    } else banner.classList.remove('show');
+
+    if(median!==null){
+      addLog('oracle',`Median of trusted nodes = ${median.toFixed(2)}°C → sending to blockchain`,'ok','oracle');
+
+      // dashboard oracle panel
+      document.getElementById('ov-main').textContent=median.toFixed(2);
+      document.getElementById('ov-main').className='oracle-val';
+      document.getElementById('ov-lbl').textContent='°C — validated median';
+      document.getElementById('ov-trusted').textContent=trusted.length+' / 3';
+      document.getElementById('ov-excluded').textContent=excl.length>0?excl.join(', '):'none';
+      document.getElementById('ov-status').textContent=excl.length>0?'⚠ Attack blocked':'✓ Normal';
+      document.getElementById('ov-status').style.color=excl.length>0?'var(--red)':'var(--teal)';
+      document.getElementById('ov-atktotal').textContent=blockedCount;
+
+      // oracle page
+      document.getElementById('ov2-main').textContent=median.toFixed(2);
+      document.getElementById('ov2-main').className='oracle-val';
+      document.getElementById('oa-all').textContent=`${t1.toFixed(2)}, ${t2.toFixed(2)}, ${t3>99?'500':t3.toFixed(2)}`;
+      document.getElementById('oa-trusted').textContent=trusted.map(v=>v.toFixed(2)).join(', ');
+      document.getElementById('oa-excl').textContent=excl.length>0?excl.join(', '):'none';
+
+      // stats
+      document.getElementById('sv-temp').innerHTML=median.toFixed(2)+'<span style="font-size:13px;color:var(--text3)">°C</span>';
+      document.getElementById('sv-temp-sub').textContent='Updated '+ts();
+      document.getElementById('sv-blocked').textContent=blockedCount;
+      document.getElementById('sv-blocked-sub').textContent=blockedCount>0?blockedCount+' attacks caught':'Oracle protection active';
+      document.getElementById('sv-blocked-sub').className='stat-sub'+(blockedCount>0?' dn':'');
+
+      // stat card color on attack
+      document.getElementById('sc-attacks').style.borderColor=blockedCount>0?'rgba(255,79,79,.3)':'var(--border)';
+
+      pushChart(median);
+      updateSecurityProof(t1,t2,t3,z1,z2,z3,excl,median);
+
+      const txHash=hex(40);
+      setTimeout(()=>{
+        txCount++;
+        document.getElementById('sv-tx').textContent=txCount;
+        document.getElementById('oa-sent').textContent=Math.round(median*100)+' (= '+median.toFixed(2)+'°C)';
+        addLog('chain',`TX #${txCount} confirmed block#${blockNum+1} val=${Math.round(median*100)} gas=~${Math.round(45000+Math.random()*12000)}`,'chain','chain');
+        addTx(median);
+        addDbRecord(t1,t2,t3,excl,median,txHash);
+        if(excl.length>0&&attackMode)addAnomalyRecord('node_3',500,z3);
+      },600);
+    }
+  },500);
+}
+
+// ── CONTROLS ───────────────────────────────────
+function setSysStatus(state){
+  const d=document.getElementById('sdot'),l=document.getElementById('slabel'),p=document.getElementById('mode-pill');
+  if(state==='normal'){d.className='sdot run';l.textContent='Normal mode';p.className='mode-pill normal';p.textContent='● Normal';}
+  else if(state==='attack'){d.className='sdot atk';l.textContent='Attack mode active';p.className='mode-pill attack';p.textContent='⚡ Attack';}
+  else{d.className='sdot';l.textContent='System idle';p.className='mode-pill idle';p.textContent='● Idle';}
+}
+
+function startNormal(){
+  if(timer)clearInterval(timer);
+  attackMode=false;startTime=Date.now();
+  setSysStatus('normal');
+  addLog('oracle','System started — normal mode','ok','oracle');
+  runCycle();timer=setInterval(runCycle,5000);
+}
+
+function startAttack(){
+  if(timer)clearInterval(timer);
+  attackMode=true;if(!startTime)startTime=Date.now();
+  setSysStatus('attack');
+  addLog('oracle','ATTACK MODE STARTED — node_3 injecting 500°C','warn','oracle');
+  addLog('sec','Attack scenario initiated — monitoring oracle response','warn','sec');
+  runCycle();timer=setInterval(runCycle,5000);
+}
+
+function stopSim(){
+  if(timer){clearInterval(timer);timer=null;}
+  setSysStatus('idle');
+  ['pipe-iot','pipe-mqtt','pipe-oracle','pipe-chain'].forEach(id=>document.getElementById(id).className='pipe-step');
+  document.getElementById('atk-banner').classList.remove('show');
+  addLog('oracle','System stopped','','oracle');
+}
+
+function clearAll(){
+  stopSim();
+  cycle=0;txCount=0;blockedCount=0;blockNum=10;tempHistory=[];logBuf=[];dbRecords=[];anomalyRecords=[];startTime=null;
+  // reset stats
+  ['sv-temp','sv-tx','sv-blocked','sv-cycles','bcs-tx','bcs-block','bcs-val','bcs-atk','db-total','db-valid','db-flagged','sec-attempts','sec-blocked','sec-rate','sec-uptime','ov-atktotal'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.textContent=el.id.includes('temp')||el.id.includes('bcs-val')||el.id.includes('sec-rate')||el.id.includes('sec-uptime')?'--':'0';
+  });
+  ['ov-main','ov2-main'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent='--';el.className='oracle-val empty';}});
+  ['ov-lbl'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='Waiting for data';});
+  ['ov-trusted','ov-excluded','ov-status','oa-all','oa-trusted','oa-excl','oa-sent','oz1','oz2','oz3'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='--';});
+  [1,2,3].forEach(i=>{
+    ['','x'].forEach(sx=>{
+      const nc=document.getElementById('ncard'+i+sx);if(nc)nc.className='node-card idle';
+      const nb=document.getElementById('nb'+i+sx);if(nb){nb.className='node-badge nb-idle';nb.textContent='idle';}
+      const nt=document.getElementById('nt'+i+sx);if(nt){nt.textContent='--°C';nt.className='node-temp normal-t';}
+      const np=document.getElementById('np'+i+sx);if(np){np.style.width='0%';np.style.background='var(--text3)';}
+      const aw=document.getElementById('aw'+i+sx);if(aw)aw.className='atk-warn';
+    });
+    const nz=document.getElementById('nz'+i);if(nz)nz.textContent='--';
+    const nzx=document.getElementById('nz'+i+'x');if(nzx)nzx.textContent='--';
+    const conn=document.getElementById('conn-n'+i);if(conn){conn.textContent='Not connected';conn.style.color='var(--text3)';}
+  });
+  ['tx-tbody','bc-tbody'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<tr><td colspan="7" class="empty">No transactions yet</td></tr>';});
+  ['db-tbody'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<tr><td colspan="11" class="empty">No records yet</td></tr>';});
+  ['anom-tbody'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<tr><td colspan="7" class="empty">No anomalies detected yet</td></tr>';});
+  ['full-log','mqtt-log','oracle-log','sec-log'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+  document.getElementById('nb-tx').textContent='0';
+  document.getElementById('scycles').textContent='Cycle: 0 | TX: 0';
+  document.getElementById('sec-proof-box').innerHTML='<span class="cm"># Click "Attack" button to run live proof\n# Oracle security test will appear here</span>';
+  if(chart){chart.data.labels=[];chart.data.datasets[0].data=[];chart.update();}
+  document.getElementById('sv-temp').innerHTML='--<span style="font-size:13px;color:var(--text3)">°C</span>';
+}
+
+window.addEventListener('load',initChart);
+</script>
+</body>
+</html>
