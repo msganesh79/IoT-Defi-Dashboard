@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure IoT–DeFi Oracle Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Top Navigation Header -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="shield-icon">🛡️</div>
+                <div>
+                    <h1>Secure IoT–DeFi Integration Engine</h1>
+                    <p class="subtitle">Byzantine Fault Tolerant Oracle with Z-Score Anomaly Isolation & Smart Contract Bridge</p>
+                </div>
+            </div>
+            <div class="system-status">
+                <div class="status-indicator">
+                    <span class="pulse-dot"></span>
+                    <span id="oracle-status-text">ORACLE ONLINE (MQTT Active)</span>
+                </div>
+                <div class="network-badge">Topic: <code>iot/sensors</code></div>
+            </div>
+        </header>
+
+        <!-- KPI Metrics Grid -->
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">VALIDATED MEDIAN</div>
+                <div class="kpi-value" id="kpi-median">25.10°C</div>
+                <div class="kpi-sub">Pushed to Smart Contract</div>
+            </div>
+            <div class="kpi-card alert-card" id="kpi-attacks-card">
+                <div class="kpi-title">ATTACKS BLOCKED</div>
+                <div class="kpi-value text-red" id="kpi-attacks-blocked">0</div>
+                <div class="kpi-sub">Z-Score & Outlier Drops</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">EXCLUDED NODES</div>
+                <div class="kpi-value text-yellow" id="kpi-excluded-nodes">None</div>
+                <div class="kpi-sub">Quarantined IoT Hardware</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">CIRCUIT BREAKER</div>
+                <div class="kpi-value text-green" id="kpi-circuit-breaker">NORMAL</div>
+                <div class="kpi-sub">DeFi Safety Floor: -50°C to +150°C</div>
+            </div>
+        </section>
+
+        <!-- Main Workspace Grid -->
+        <div class="workspace-grid">
+            <!-- Left Column: IoT Node Health & Control -->
+            <div class="column-left">
+                <!-- Node Health Cards -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>📡 IoT Sensor Node Grid (ESP32 Network)</h2>
+                        <span class="badge">3 Devices Connected</span>
+                    </div>
+                    <div class="nodes-container">
+                        <!-- Node 1 -->
+                        <div class="node-card healthy" id="node-card-1">
+                            <div class="node-header">
+                                <span class="node-name">ESP32 Node 1</span>
+                                <span class="node-status-badge healthy" id="node-status-1">HEALTHY</span>
+                            </div>
+                            <div class="node-body">
+                                <div class="metric"><span class="label">Temperature:</span> <span class="val" id="node-temp-1">25.10 °C</span></div>
+                                <div class="metric"><span class="label">Humidity:</span> <span class="val" id="node-hum-1">52.0 %</span></div>
+                                <div class="metric"><span class="label">Role:</span> <span class="val">Telemetry Sender</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Node 2 -->
+                        <div class="node-card healthy" id="node-card-2">
+                            <div class="node-header">
+                                <span class="node-name">ESP32 Node 2</span>
+                                <span class="node-status-badge healthy" id="node-status-2">HEALTHY</span>
+                            </div>
+                            <div class="node-body">
+                                <div class="metric"><span class="label">Temperature:</span> <span class="val" id="node-temp-2">25.40 °C</span></div>
+                                <div class="metric"><span class="label">Humidity:</span> <span class="val" id="node-hum-2">51.8 %</span></div>
+                                <div class="metric"><span class="label">Role:</span> <span class="val">Telemetry Sender</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Node 3 (Target of Attack) -->
+                        <div class="node-card healthy" id="node-card-3">
+                            <div class="node-header">
+                                <span class="node-name">ESP32 Node 3 (Target Node)</span>
+                                <span class="node-status-badge healthy" id="node-status-3">HEALTHY</span>
+                            </div>
+                            <div class="node-body">
+                                <div class="metric"><span class="label">Temperature:</span> <span class="val" id="node-temp-3">24.80 °C</span></div>
+                                <div class="metric"><span class="label">Humidity:</span> <span class="val" id="node-hum-3">52.2 %</span></div>
+                                <div class="metric"><span class="label">Security State:</span> <span class="val" id="node-security-3">Uncompromised</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attack Injection Controller -->
+                <div class="panel attack-controller-panel">
+                    <div class="panel-header">
+                        <h2>💥 Attack Injection Simulator</h2>
+                        <span class="badge badge-red">Interactive Test Harness</span>
+                    </div>
+                    <p class="panel-desc">Inject a malicious <strong>500°C extreme outlier payload</strong> from Node 3 to test the Oracle Z-Score filter and Smart Contract protection.</p>
+                    <div class="btn-group">
+                        <button class="btn btn-danger" id="btn-attack-on" onclick="toggleAttack(true)">🚨 Inject 500°C Attack on Node 3</button>
+                        <button class="btn btn-success" id="btn-attack-off" onclick="toggleAttack(false)">✅ Restore Normal Operations</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Charts & Blockchain Audit Log -->
+            <div class="column-right">
+                <!-- Live Chart Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>📈 Real-Time Telemetry & Aggregation Telemetry</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="telemetryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Smart Contract Ledger State -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2>⛓️ Solidity Smart Contract Ledger State</h2>
+                        <span class="badge badge-purple">Web3.py On-Chain Sync</span>
+                    </div>
+                    <div class="ledger-info">
+                        <div class="ledger-item">
+                            <span class="label">Contract Address:</span>
+                            <code class="val-code">0x32eB4A8c4F81719b4899557C3eDFA199A61E34b2</code>
+                        </div>
+                        <div class="ledger-item">
+                            <span class="label">Latest On-Chain Value:</span>
+                            <span class="val-highlight" id="ledger-onchain-val">25.1°C (Scaled: 251)</span>
+                        </div>
+                        <div class="ledger-item">
+                            <span class="label">Latest Tx Hash:</span>
+                            <code class="val-code" id="ledger-tx-hash">0x7f8a92b0c1...</code>
+                        </div>
+                        <div class="ledger-item">
+                            <span class="label">SQLite DB Status:</span>
+                            <span class="val" id="ledger-db-status">Active (oracle/database.db)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Inspection Table Panel -->
+        <section class="panel db-panel">
+            <div class="panel-header">
+                <h2>🗄️ External Database Record Log (Outside Web UI Queryable)</h2>
+                <span class="badge">SQLite Persistence Engine</span>
+            </div>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Event Category</th>
+                            <th>Target Node</th>
+                            <th>Observed Temp</th>
+                            <th>Z-Score</th>
+                            <th>Oracle Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="db-log-body">
+                        <tr>
+                            <td>Just now</td>
+                            <td><span class="tag tag-green">TELEMETRY</span></td>
+                            <td>ESP32_Node_1</td>
+                            <td>25.10 °C</td>
+                            <td>0.12</td>
+                            <td>Validated & Buffered</td>
+                        </tr>
+                        <tr>
+                            <td>Just now</td>
+                            <td><span class="tag tag-green">TELEMETRY</span></td>
+                            <td>ESP32_Node_2</td>
+                            <td>25.40 °C</td>
+                            <td>0.45</td>
+                            <td>Validated & Buffered</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
